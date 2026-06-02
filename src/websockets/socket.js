@@ -11,11 +11,15 @@ export const connectSocket = (token) => {
   });
 
   socket.addEventListener("message", (event) => {
-    const { type, data } = JSON.parse(event.data);
+    try {
+      const { type, data } = JSON.parse(event.data);
 
-    // Check if we have a listener for this specific message type
-    if (listeners.has(type)) {
-      listeners.get(type).forEach((callback) => callback(data));
+      // Check if we have a listener for this specific message type
+      if (listeners.has(type)) {
+        listeners.get(type).forEach((callback) => callback(data));
+      }
+    } catch (err) {
+      console.error("Error parsing WebSocket message:", err);
     }
   });
 
@@ -25,10 +29,28 @@ export const connectSocket = (token) => {
   });
 };
 
-// Ability to subscribe to specific events (e.g., 'NEW_MESSAGE', 'USER_TYPING')
+export const disconnectSocket = () => {
+  if (socket) {
+    socket.close();
+    socket = null;
+  }
+};
+
+// Ability to subscribe to specific events (e.g., 'NEW_MESSAGE')
+// Returns a cleanup/unsubscribe function to prevent leaks in React
 export const on = (type, callback) => {
   if (!listeners.has(type)) listeners.set(type, []);
   listeners.get(type).push(callback);
+
+  return () => {
+    const list = listeners.get(type);
+    if (list) {
+      const idx = list.indexOf(callback);
+      if (idx !== -1) {
+        list.splice(idx, 1);
+      }
+    }
+  };
 };
 
 export const sendMessage = (type, payload) => {

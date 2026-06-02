@@ -13,6 +13,7 @@ import { setApiTokenGetter } from "./api/axios";
 import { createConversation, getConversations } from "./api/conversations.api";
 import { createMessage, getMessages } from "./api/messages.api";
 import { getCurrentUser, searchUserByName } from "./api/users.api";
+import { connectSocket, disconnectSocket, on } from "./websockets/socket";
 import "./App.css";
 
 const getErrorMessage = (error) =>
@@ -59,6 +60,40 @@ function ChatApp() {
   useEffect(() => {
     setApiTokenGetter(getToken);
   }, [getToken]);
+
+  useEffect(() => {
+    let active = true;
+    const initSocket = async () => {
+      try {
+        const token = await getToken();
+        if (token && active) {
+          connectSocket(token);
+        }
+      } catch (err) {
+        console.error("Failed to connect websocket:", err);
+      }
+    };
+    initSocket();
+
+    return () => {
+      active = false;
+      disconnectSocket();
+    };
+  }, [getToken]);
+
+  useEffect(() => {
+    const unsubscribe = on("NEW_MESSAGE", (newMessage) => {
+      console.log("WebSocket: Received new message:", newMessage);
+      queryClient.invalidateQueries({
+        queryKey: ["messages", newMessage.conversationId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [queryClient]);
 
   const currentUserQuery = useQuery({
     queryKey: ["current-user"],
