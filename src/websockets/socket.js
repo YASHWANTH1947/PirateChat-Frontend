@@ -54,6 +54,7 @@ export const on = (type, callback) => {
 };
 
 export const sendMessage = (type, payload) => {
+  console.log("Sending WebSocket message :", { type, payload });
   if (socket?.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify({ type, payload }));
   }

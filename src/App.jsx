@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { sendMessage } from "./websockets/socket";
 import {
   SignedIn,
   SignedOut,
@@ -154,6 +155,10 @@ function ChatApp() {
     if (!selectedConversationId || !text) {
       return;
     }
+    sendMessage("send_message", {
+      conversationId: selectedConversationId,
+      text: text,
+    });
 
     createMessageMutation.mutate({
       conversationId: selectedConversationId,
@@ -198,14 +203,18 @@ function ChatApp() {
             <div className="search-results">
               {searchQuery.isLoading && <p>Searching...</p>}
               {searchQuery.isError && (
-                <p className="error-text">{getErrorMessage(searchQuery.error)}</p>
+                <p className="error-text">
+                  {getErrorMessage(searchQuery.error)}
+                </p>
               )}
               {searchResults.map((result) => (
                 <button
                   type="button"
                   className="user-row"
                   key={result.clerkId}
-                  onClick={() => createConversationMutation.mutate(result.clerkId)}
+                  onClick={() =>
+                    createConversationMutation.mutate(result.clerkId)
+                  }
                   disabled={createConversationMutation.isPending}
                 >
                   <img
@@ -232,8 +241,9 @@ function ChatApp() {
             )}
             {conversations.map((conversation) => {
               const otherParticipant =
-                conversation.participants?.find((id) => id !== currentClerkId) ||
-                conversation.participants?.[0];
+                conversation.participants?.find(
+                  (id) => id !== currentClerkId,
+                ) || conversation.participants?.[0];
 
               return (
                 <button
@@ -247,7 +257,9 @@ function ChatApp() {
                   onClick={() => setSelectedConversationId(conversation._id)}
                 >
                   <span>{formatParticipant(otherParticipant)}</span>
-                  <small>{conversation.lastMessage?.text || "No messages yet"}</small>
+                  <small>
+                    {conversation.lastMessage?.text || "No messages yet"}
+                  </small>
                 </button>
               );
             })}
@@ -268,7 +280,9 @@ function ChatApp() {
               <div className="message-list">
                 {messagesQuery.isLoading && <p>Loading messages...</p>}
                 {messagesQuery.isError && (
-                  <p className="error-text">{getErrorMessage(messagesQuery.error)}</p>
+                  <p className="error-text">
+                    {getErrorMessage(messagesQuery.error)}
+                  </p>
                 )}
                 {(messagesQuery.data || []).map((message) => (
                   <article
@@ -298,7 +312,9 @@ function ChatApp() {
                 <button
                   type="submit"
                   className="primary-button"
-                  disabled={!messageText.trim() || createMessageMutation.isPending}
+                  disabled={
+                    !messageText.trim() || createMessageMutation.isPending
+                  }
                 >
                   Send
                 </button>
